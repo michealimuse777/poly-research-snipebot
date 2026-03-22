@@ -1,0 +1,9 @@
+# Polymarket Snipe Bot
+python-dotenv>=1.0.0
+aiohttp>=3.9.0
+websockets>=12.0
+redis>=5.0.0
+psycopg2-binary>=2.9.9
+numpy>=1.26.0
+requests>=2.31.0
+python-telegram-bot>=20.7
