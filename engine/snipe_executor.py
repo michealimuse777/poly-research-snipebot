@@ -56,6 +56,11 @@ class SnipeExecutor:
         if price <= 0:
             return None
 
+        # ── Spread filter — block illiquid markets ──────────
+        spread = self._get_spread(token_id)
+        if spread > 0.15:  # >15% spread = illiquid death trap
+            return None
+
         # ── Generate signal ─────────────────────────────────
         signal = self.signal.evaluate(token_id, market_name)
         self.total_signals += 1
@@ -134,3 +139,24 @@ class SnipeExecutor:
         best_ask = min(a["price"] for a in asks)
 
         return (best_bid + best_ask) / 2.0
+
+    def _get_spread(self, token_id: str) -> float:
+        """Get bid-ask spread as a percentage. High spread = illiquid."""
+        book = self.orderbook.get(token_id)
+        if not book:
+            return 1.0  # no data = assume illiquid
+
+        bids = book.get("bids", [])
+        asks = book.get("asks", [])
+
+        if not bids or not asks:
+            return 1.0
+
+        best_bid = max(b["price"] for b in bids)
+        best_ask = min(a["price"] for a in asks)
+        mid = (best_bid + best_ask) / 2.0
+
+        if mid <= 0:
+            return 1.0
+
+        return (best_ask - best_bid) / mid

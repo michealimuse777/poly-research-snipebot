@@ -44,7 +44,7 @@ from engine.exit_engine import ExitEngine
 from engine.position_manager import PositionManager
 
 # Telegram
-from telegram.bot import TelegramNotifier
+from notifications.bot import TelegramNotifier
 
 log = get_logger("main")
 

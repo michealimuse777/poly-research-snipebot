@@ -181,8 +181,22 @@ class SignalEngine:
         elif score <= settings.SIGNAL_SELL_THRESHOLD:
             action = "SELL"
 
-        # Build signal combo string for CSV logging
+        # Build signal combo string for CSV logging (before gating checks)
         signal_combo = "+".join(active_detectors) if active_detectors else "none"
+
+        # ── Sports markets gate: require stronger signals ────
+        # Sports were 33% WR, -$653. Need score>0.55 or 3+ active detectors
+        if action != "HOLD" and market_type == "sports":
+            if confidence < 0.55 and len(active_detectors) < 3:
+                action = "HOLD"
+                block_reason = "sports_weak_signal"
+
+        # ── whale+insider only gate: bump min confidence ─────
+        # whale+insider alone was 35% WR, -$784. Require higher bar
+        if action != "HOLD" and signal_combo == "whale+insider":
+            if confidence < 0.45:
+                action = "HOLD"
+                block_reason = "wi_low_confidence"
 
         result = {
             "action": action,

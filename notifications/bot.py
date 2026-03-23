@@ -331,29 +331,21 @@ class TelegramNotifier:
             await update.message.reply_text("🐋 Whale detector not connected")
             return
 
-        # Scan top tokens for whale activity
-        tokens = list(self.orderbook.get_all_tokens())[:10] if self.orderbook else []
+        # Use scan_all to get only tokens with whale activity
+        whale_results = self.whale.scan_all()
         lines = ["🐋 *WHALE ACTIVITY*\n"]
-        whale_count = 0
 
-        for tid in tokens:
-            try:
-                result = self.whale.scan(tid)
-                if result.get("detected", False):
-                    whale_count += 1
-                    side = "BULLISH 🟢" if result["score"] > 0 else "BEARISH 🔴"
-                    lines.append(
-                        f"{side} `{tid[:12]}`\n"
-                        f"   Bids: ${result.get('bid_total', 0):,.0f}\n"
-                        f"   Asks: ${result.get('ask_total', 0):,.0f}\n"
-                    )
-            except Exception:
-                continue
-
-        if whale_count == 0:
+        if not whale_results:
             lines.append("No active whale orders detected right now")
         else:
-            lines.append(f"\n*Total: {whale_count} whale positions*")
+            for tid, result in list(whale_results.items())[:10]:
+                side = "BULLISH 🟢" if result["score"] > 0 else "BEARISH 🔴"
+                lines.append(
+                    f"{side} `{tid[:12]}`\n"
+                    f"   Bids: {result.get('whale_bids', 0)} orders (${result.get('bid_volume', 0):,.0f})\n"
+                    f"   Asks: {result.get('whale_asks', 0)} orders (${result.get('ask_volume', 0):,.0f})\n"
+                )
+            lines.append(f"\n*Total: {len(whale_results)} whale positions*")
 
         await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
 
