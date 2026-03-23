@@ -160,8 +160,8 @@ class SignalEngine:
         if abs(lead_lag) > 0.005 and signals_agree and market_type != "sports":
             score += lead_lag * 0.1
 
-        # Cluster alignment bonus
-        if cluster_aligns:
+        # Cluster alignment bonus (NOT on sports — cluster is noise there)
+        if cluster_aligns and market_type != "sports":
             score *= 1.15
 
         confidence = abs(score)
@@ -184,10 +184,10 @@ class SignalEngine:
         # Build signal combo string for CSV logging (before gating checks)
         signal_combo = "+".join(active_detectors) if active_detectors else "none"
 
-        # ── Sports markets gate: require stronger signals ────
-        # Sports were 33% WR, -$653. Need score>0.55 or 3+ active detectors
+        # ── Sports markets gate: require VERY strong signals ─
+        # Sports 32% WR, -$583. Only allow score>0.70
         if action != "HOLD" and market_type == "sports":
-            if confidence < 0.55 and len(active_detectors) < 3:
+            if confidence < 0.70:
                 action = "HOLD"
                 block_reason = "sports_weak_signal"
 

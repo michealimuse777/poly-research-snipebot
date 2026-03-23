@@ -51,7 +51,7 @@ W_CRYPTO                 = float(os.getenv("W_CRYPTO", 0.25))
 
 # ── Execution ───────────────────────────────────────────────
 TAKE_PROFIT              = float(os.getenv("TAKE_PROFIT", 0.05))
-STOP_LOSS                = float(os.getenv("STOP_LOSS", 0.02))
+STOP_LOSS                = float(os.getenv("STOP_LOSS", 0.035))
 TIME_EXIT_SECONDS        = int(os.getenv("TIME_EXIT_SECONDS", 600))
 COOLDOWN_SECONDS         = int(os.getenv("COOLDOWN_SECONDS", 15))
 MIN_HOLD_SECONDS         = int(os.getenv("MIN_HOLD_SECONDS", 15))
