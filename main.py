@@ -100,6 +100,10 @@ class SnipeBot:
         self.telegram = TelegramNotifier(
             position_manager=self.position_manager,
             snipe_executor=self.snipe_executor,
+            signal_engine=self.signal_engine,
+            whale_detector=self.whale_detector,
+            spoofing_detector=self.spoofing_detector,
+            orderbook=self.orderbook,
         ) if use_telegram else None
 
         # Market data
@@ -189,6 +193,11 @@ class SnipeBot:
             try:
                 self.cycle_count += 1
 
+                # Check pause state from Telegram
+                if self.telegram and self.telegram.is_paused:
+                    await asyncio.sleep(1)
+                    continue
+
                 # Scan all active tokens for snipe opportunities
                 entries_this_cycle = 0
                 for token_id in self.orderbook.get_all_tokens():
@@ -197,11 +206,18 @@ class SnipeBot:
 
                     if pos and self.mode == "paper":
                         entries_this_cycle += 1
-                        # Telegram alert
+                        # Telegram alert with full signal data
                         if self.telegram:
                             await self.telegram.alert_entry(
-                                pos.side, pos.market_name, pos.entry_price,
-                                0.0, pos.size,
+                                side=pos.side,
+                                market=pos.market_name,
+                                price=pos.entry_price,
+                                score=getattr(pos, 'signal_score', 0.0),
+                                size=pos.size,
+                                combo=getattr(pos, 'signal_combo', ''),
+                                market_type=getattr(pos, 'market_type', ''),
+                                tp=getattr(pos, 'dynamic_tp', settings.TAKE_PROFIT),
+                                sl=getattr(pos, 'dynamic_sl', settings.STOP_LOSS),
                             )
 
                 # Periodic status log
@@ -240,9 +256,11 @@ class SnipeBot:
                     for pos in reversed(self.position_manager.closed_positions):
                         if pos.token_id == tid:
                             if self.telegram:
+                                pnl_pct = (pos.pnl / pos.size * 100) if pos.size else 0
                                 await self.telegram.alert_exit(
                                     pos.side, pos.market_name, pos.pnl,
                                     pos.exit_reason, pos.hold_time(),
+                                    pnl_pct=pnl_pct,
                                 )
                             break
 
