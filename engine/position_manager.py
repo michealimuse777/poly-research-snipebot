@@ -90,12 +90,13 @@ class PositionManager:
     def has_position(self, token_id: str) -> bool:
         return token_id in self.open_positions
 
-    def open(self, token_id: str, side: str, price: float, market_name: str = "") -> Optional[Position]:
-        """Open a new snipe position."""
+    def open(self, token_id: str, side: str, price: float, market_name: str = "",
+             size_multiplier: float = 1.0) -> Optional[Position]:
+        """Open a new snipe position. size_multiplier scales the base size."""
         if not self.can_open() or self.has_position(token_id):
             return None
 
-        size = self.bankroll * settings.POSITION_SIZE_PCT
+        size = self.bankroll * settings.POSITION_SIZE_PCT * size_multiplier
         pos = Position(token_id, side, price, size, market_name)
 
         self.open_positions[token_id] = pos
@@ -104,6 +105,7 @@ class PositionManager:
         log.info(
             f"💰 OPEN {side} | {market_name or token_id[:8]} | "
             f"${size:.2f} @ {price:.4f} | "
+            f"mult={size_multiplier:.2f} | "
             f"bankroll=${self.bankroll:.2f}"
         )
 

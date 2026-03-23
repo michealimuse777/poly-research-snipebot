@@ -94,7 +94,7 @@ class SnipeBot:
             position_manager=self.position_manager,
             orderbook=self.orderbook,
         )
-        self.exit_engine = ExitEngine(self.position_manager, self.orderbook)
+        self.exit_engine = ExitEngine(self.position_manager, self.orderbook, self.signal_engine)
 
         # ── Telegram ────────────────────────────────────────
         self.telegram = TelegramNotifier(

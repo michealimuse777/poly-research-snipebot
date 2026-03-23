@@ -76,21 +76,42 @@ class SnipeExecutor:
 
         # ── Execute entry ───────────────────────────────────
         side = signal["action"]
-        pos = self.positions.open(token_id, side, price, market_name)
+        signal_strength = abs(signal.get("score", 0.0))
+
+        # ── Score-based sizing: stronger signals = bigger bets ──
+        # Base 2% of bankroll, scale up to 3% for strong signals
+        size_multiplier = 1.0 + min(signal_strength, 1.0) * 0.5
+        pos = self.positions.open(token_id, side, price, market_name,
+                                  size_multiplier=size_multiplier)
 
         if pos:
             self._last_trade_time[token_id] = now
             self.total_entries += 1
-            # Store signal details on position for trade logging
+
+            # Store signal details on position for trade logging + dynamic exits
             pos.signal_combo = signal.get("signal_combo", "unknown")
             pos.market_type = signal.get("market_type", "general")
             pos.signal_score = signal.get("score", 0.0)
+
+            # ── Dynamic TP/SL: stronger signals get wider TP ────
+            # Base: TP=5%, SL=2%. Strong signals: TP up to 7%, SL stays tight
+            if signal_strength > 0.6:
+                pos.dynamic_tp = 0.07
+                pos.dynamic_sl = 0.02
+            elif signal_strength > 0.45:
+                pos.dynamic_tp = 0.06
+                pos.dynamic_sl = 0.02
+            else:
+                pos.dynamic_tp = settings.TAKE_PROFIT
+                pos.dynamic_sl = settings.STOP_LOSS
 
             log.info(
                 f"⚡ SNIPE ENTRY {side} | {market_name or token_id[:8]} | "
                 f"@ {price:.4f} | score={signal['score']:+.3f} | "
                 f"type={signal.get('market_type', 'general')} | "
                 f"combo={signal.get('signal_combo', '?')} | "
+                f"size_mult={size_multiplier:.2f} | "
+                f"TP={pos.dynamic_tp:.0%}/SL={pos.dynamic_sl:.0%} | "
                 f"momentum={momentum:.4f}"
             )
 
